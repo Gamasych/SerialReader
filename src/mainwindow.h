@@ -23,9 +23,14 @@ private slots:
     void on_pbOpen_clicked();
     void on_pbClose_clicked();
     void getMessage(QString mes);
+    void addBaudrateSlot(uint baudrate);
 
 private:
+    void session(bool save);
+    void sortComboBox(uint baudrate);
+
     Ui::MainWindow *ui;
     SerialReader serial;
+    QWidget *add_baudrate_widget;
 };
 #endif // MAINWINDOW_H

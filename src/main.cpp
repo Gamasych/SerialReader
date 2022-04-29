@@ -6,6 +6,7 @@
 
 int main(int argc, char *argv[])
 {
+    qRegisterMetaTypeStreamOperators<QList<QString>>("Baudrates");
     QApplication a(argc, argv);
 
     /*QTranslator translator;
@@ -17,6 +18,9 @@ int main(int argc, char *argv[])
             break;
         }
     }*/
+    a.setOrganizationName("AIS");
+    a.setOrganizationDomain("KB");
+    a.setApplicationName("lizator");
     MainWindow w;
     w.show();
     return a.exec();

@@ -30,7 +30,7 @@
       <item>
        <widget class="QToolButton" name="tbUpdate">
         <property name="text">
-         <string>update</string>
+         <string>Update</string>
         </property>
        </widget>
       </item>
@@ -47,7 +47,7 @@
       <item>
        <widget class="QToolButton" name="tbAdd">
         <property name="text">
-         <string>add</string>
+         <string>Add</string>
         </property>
        </widget>
       </item>
@@ -89,7 +89,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
