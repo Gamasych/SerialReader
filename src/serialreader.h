@@ -8,7 +8,7 @@ class SerialReader: public QObject
 {
     Q_OBJECT
 public:
-    SerialReader();
+    SerialReader() {}
     QStringList getAvailPort();
     QStringList getSpeed();
     int openSerial(QString serialPort, quint32 baudRate);
@@ -18,7 +18,7 @@ private slots:
     void readData();
 
 signals:
-    void getMessage(QString data);
+    void setMessage(QString data);
 
 private:
     QSerialPort ser;

@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "serialreader.h"
+#include "parser.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -13,7 +14,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
@@ -22,8 +23,11 @@ private slots:
     void on_pbClear_clicked();
     void on_pbOpen_clicked();
     void on_pbClose_clicked();
-    void getMessage(QString mes);
-    void addBaudrateSlot(uint baudrate);
+    void getMessage(ColorString mes);
+
+protected:
+    bool nativeEvent(const QByteArray& eventType, void* message,
+                                 long* result) override;
 
 private:
     void session(bool save);
@@ -31,6 +35,6 @@ private:
 
     Ui::MainWindow *ui;
     SerialReader serial;
-    QWidget *add_baudrate_widget;
+    Parser pars;
 };
 #endif // MAINWINDOW_H

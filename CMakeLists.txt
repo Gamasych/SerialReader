@@ -18,8 +18,6 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets LinguistTools SerialPort R
 
 file(GLOB cmd
     "src/*"
-    "middlewares/CANdb/*.h"
-    "middlewares/CANdb/*.c"
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

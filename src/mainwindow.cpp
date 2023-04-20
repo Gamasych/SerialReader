@@ -1,37 +1,46 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include <QSettings>
-#include "add_baudrate.h"
 #include <algorithm>
 #include <QDebug>
+#include <QInputDialog>
+#include <qt_windows.h>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    qRegisterMetaType<ColorString>("ColorString");
     ui->setupUi(this);
     ui->cbSerialPort->addItems(serial.getAvailPort());
     ui->cbSpeed->addItems(serial.getSpeed());
-    add_baudrate_widget = new add_baudrate();
     session(false);
-    connect(add_baudrate_widget, SIGNAL(addBaudrateSignal(uint)), this, SLOT(addBaudrateSlot(uint)));
+    //TODO go to thread
+    //TODO dark theme
+    connect(&serial, &SerialReader::setMessage, &pars, &Parser::getMessage);
+    connect(&pars, &Parser::setColorMes, this, &MainWindow::getMessage);
 }
 
 MainWindow::~MainWindow()
 {
     session(true);
     delete ui;
+    disconnect(&serial, &SerialReader::setMessage, &pars, &Parser::getMessage);
 }
 
 void MainWindow::on_tbUpdate_clicked()
 {
+    //TODO if connect and device delete disconnect and send error
     ui->cbSerialPort->clear();
     ui->cbSerialPort->addItems(serial.getAvailPort());
 }
 
 void MainWindow::on_tbAdd_clicked()
 {
-    add_baudrate_widget->show();
+    bool ok;
+    int temp = QInputDialog::getInt(this, tr("Input BaudRate"), tr("BaudRate"), 0, 0, 2147483647, 1, &ok);
+    if (!ok) return;
+    sortComboBox(temp);
 }
 
 void MainWindow::on_pbClear_clicked()
@@ -43,7 +52,6 @@ void MainWindow::on_pbOpen_clicked()
 {
     if(serial.openSerial(ui->cbSerialPort->currentText(), ui->cbSpeed->currentText().toUInt()) != 0) ui->statusbar->showMessage(tr("Error open serial port"), 100);
     else{
-        connect(&serial, SIGNAL(getMessage(QString)), this, SLOT(getMessage(QString)));
         ui->pbOpen->setEnabled(false);
         ui->pbClose->setEnabled(true);
     }
@@ -56,19 +64,18 @@ void MainWindow::on_pbClose_clicked()
     ui->pbClose->setEnabled(false);
 }
 
-void MainWindow::getMessage(QString mes)
+void MainWindow::getMessage(ColorString mes)
 {
-    ui->textEdit->insertPlainText(mes);
-}
-
-void MainWindow::addBaudrateSlot(uint baudrate)
-{
-    sortComboBox(baudrate);
-    add_baudrate_widget->close();
+    QTextCharFormat fmt = ui->textEdit->currentCharFormat();
+    fmt.setForeground(mes.clrText);
+    fmt.setBackground(mes.clrBackGround);
+    ui->textEdit->setCurrentCharFormat(fmt);
+    ui->textEdit->insertPlainText(mes.str);
 }
 
 void MainWindow::session(bool save)
 {
+    //TODO save last device
     QString strCurrBaudrate = "Current Baudrate";
     QString strBaudrates = "Baudrates";
     QSettings settings;
@@ -103,6 +110,7 @@ void MainWindow::session(bool save)
 
 void MainWindow::sortComboBox(uint baudrate)
 {
+    //TODO бинарный поиск
     for(int i = 0; i < ui->cbSpeed->count(); i++)
     {
         if(ui->cbSpeed->itemText(i).toUInt() == baudrate) break;
@@ -117,4 +125,21 @@ void MainWindow::sortComboBox(uint baudrate)
             break;
         }
     }
+}
+//TODO comment and for linux
+
+// Function that receive messages
+// This is windows-specific
+bool MainWindow::nativeEvent(const QByteArray&, void* message, long*)
+{
+    MSG * msg = static_cast< MSG * > (message);
+
+    // Does this specific message interest us?
+    if(msg->message == WM_DEVICECHANGE)
+    {
+        on_tbUpdate_clicked();
+    }
+
+    // Qt handles the rest
+    return false;
 }

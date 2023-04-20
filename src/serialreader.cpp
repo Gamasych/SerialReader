@@ -1,11 +1,7 @@
 #include "serialreader.h"
 #include <QSerialPortInfo>
 #include <QDebug>
-
-SerialReader::SerialReader()
-{
-
-}
+#include <QColor>
 
 QStringList SerialReader::getAvailPort()
 {
@@ -29,6 +25,7 @@ QStringList SerialReader::getSpeed()
 
 int SerialReader::openSerial(QString serialPort, quint32 baudRate)
 {
+    if(serialPort.isEmpty()) return -2;
     if(ser.isOpen()) ser.close();
     ser.setBaudRate(baudRate);
     ser.setPortName(serialPort);
@@ -41,26 +38,12 @@ int SerialReader::openSerial(QString serialPort, quint32 baudRate)
 
 int SerialReader::closeSerial()
 {
+    QObject::disconnect(&ser, &QSerialPort::readyRead, this, &SerialReader::readData);
     if(ser.isOpen()) ser.close();
     return 0;
 }
 
 void SerialReader::readData()
 {
-    QString res = QString::fromStdString(ser.readAll().toStdString());
-    while(1){
-        int pos = res.indexOf("[");
-        if(pos >= 0)
-            do{
-            if(res.at(pos) == 'm'){
-                res.remove(pos, 1);
-                res.insert(pos, ' ');
-                break;
-            }
-            res.remove(pos, 1);
-        }while(pos < res.length());
-
-        else break;
-    }
-    emit getMessage(res);
+    emit setMessage(QString::fromStdString(ser.readAll().toStdString()));
 }

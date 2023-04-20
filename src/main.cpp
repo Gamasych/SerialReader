@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
     qRegisterMetaTypeStreamOperators<QList<QString>>("Baudrates");
     QApplication a(argc, argv);
 
-    /*QTranslator translator;
+    QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();
     for (const QString &locale : uiLanguages) {
         const QString baseName = "SerialReader_" + QLocale(locale).name();
@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
             a.installTranslator(&translator);
             break;
         }
-    }*/
+    }
     a.setOrganizationName("AIS");
     a.setOrganizationDomain("KB");
     a.setApplicationName("lizator");

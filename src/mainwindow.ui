@@ -18,7 +18,7 @@
     <item row="0" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QLabel" name="label">
+       <widget class="QLabel" name="label_Port">
         <property name="text">
          <string>Serial port</string>
         </property>
@@ -35,7 +35,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_2">
+       <widget class="QLabel" name="label_Speed">
         <property name="text">
          <string>Speed</string>
         </property>
