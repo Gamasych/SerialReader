@@ -42,19 +42,16 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="cbSpeed"/>
+       <widget class="QComboBox" name="cbSpeed">
+        <property name="insertPolicy">
+         <enum>QComboBox::InsertAlphabetically</enum>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QToolButton" name="tbAdd">
         <property name="text">
          <string>Add</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pbClear">
-        <property name="text">
-         <string>Clear</string>
         </property>
        </widget>
       </item>
@@ -66,9 +63,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pbClose">
+       <widget class="QPushButton" name="pbClear">
         <property name="text">
-         <string>Close</string>
+         <string>Clear</string>
         </property>
        </widget>
       </item>

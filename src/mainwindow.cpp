@@ -4,33 +4,70 @@
 #include <algorithm>
 #include <QDebug>
 #include <QInputDialog>
+#ifdef Q_OS_WIN
 #include <qt_windows.h>
+#endif
+#ifdef Q_OS_LINUX
+#include <xcb/xcb.h>
+#include <sys/utsname.h>
+#endif
+#include <QFile>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    qRegisterMetaTypeStreamOperators<QList<QString>>("Baudrates");
     qRegisterMetaType<ColorString>("ColorString");
     ui->setupUi(this);
     ui->cbSerialPort->addItems(serial.getAvailPort());
     ui->cbSpeed->addItems(serial.getSpeed());
     session(false);
-    //TODO go to thread
-    //TODO dark theme
-    connect(&serial, &SerialReader::setMessage, &pars, &Parser::getMessage);
-    connect(&pars, &Parser::setColorMes, this, &MainWindow::getMessage);
+
+    //перенос парсера и чтение порта в отдельные потоки
+    pars.moveToThread(&threadParser);
+    serial.moveToThread(&threadSerial);
+    threadParser.start();
+    threadSerial.start();
+    connect(&serial, &SerialReader::setMessage, &pars, &Parser::getMessage, Qt::QueuedConnection);
+    connect(&pars, &Parser::setColorMes, this, &MainWindow::getMessage, Qt::QueuedConnection);
+
+#ifdef Q_OS_LINUX
+    utsname kernelInfo;
+    const int code = uname(&kernelInfo);
+    assert(code == 0); (void)code;
+
+    auto releaseVers = QString::fromStdString(kernelInfo.release);
+    releaseVers.resize(releaseVers.indexOf('.', releaseVers.indexOf('.', 0) + 1));
+    bool ok;
+
+    double vers = releaseVers.toDouble(&ok);
+    if(ok && vers >= 2.5)
+        path = "/dev/serial/by-id/";
+    else
+        path = "/dev/";
+    if(!fileWatch.addPath(path)) fileWatch.addPath("/dev");
+    connect(&fileWatch, &QFileSystemWatcher::directoryChanged, this, &MainWindow::eventFileWatch, Qt::QueuedConnection);
+    connect(&fileWatch, &QFileSystemWatcher::fileChanged, this, &MainWindow::eventFileWatch, Qt::QueuedConnection);
+#endif
 }
 
 MainWindow::~MainWindow()
 {
     session(true);
+    threadParser.quit();
+    threadParser.wait();
+    threadSerial.quit();
+    threadSerial.wait();
+
     delete ui;
     disconnect(&serial, &SerialReader::setMessage, &pars, &Parser::getMessage);
+    disconnect(&pars, &Parser::setColorMes, this, &MainWindow::getMessage);
 }
 
 void MainWindow::on_tbUpdate_clicked()
 {
-    //TODO if connect and device delete disconnect and send error
     ui->cbSerialPort->clear();
     ui->cbSerialPort->addItems(serial.getAvailPort());
 }
@@ -50,18 +87,25 @@ void MainWindow::on_pbClear_clicked()
 
 void MainWindow::on_pbOpen_clicked()
 {
-    if(serial.openSerial(ui->cbSerialPort->currentText(), ui->cbSpeed->currentText().toUInt()) != 0) ui->statusbar->showMessage(tr("Error open serial port"), 100);
-    else{
-        ui->pbOpen->setEnabled(false);
-        ui->pbClose->setEnabled(true);
+    bool disabl;
+    if(connectedDevice.isEmpty()){
+        if(serial.openSerial(ui->cbSerialPort->currentText(), ui->cbSpeed->currentText().toUInt()) != 0) QMessageBox::warning(this, tr("Device"), tr("Error open serial port"));
+        else{
+            ui->pbOpen->setText(tr("Close"));
+            disabl = true;
+            connectedDevice = ui->cbSerialPort->currentText();
+        }
     }
-}
+    else{
+        ui->pbOpen->setText(tr("Open"));
+        serial.closeSerial();
+        connectedDevice.clear();
+        disabl = false;
+    }
+    ui->tbAdd->setDisabled(disabl);
+    ui->cbSerialPort->setDisabled(disabl);
+    ui->cbSpeed->setDisabled(disabl);
 
-void MainWindow::on_pbClose_clicked()
-{
-    serial.closeSerial();
-    ui->pbOpen->setEnabled(true);
-    ui->pbClose->setEnabled(false);
 }
 
 void MainWindow::getMessage(ColorString mes)
@@ -72,10 +116,68 @@ void MainWindow::getMessage(ColorString mes)
     ui->textEdit->setCurrentCharFormat(fmt);
     ui->textEdit->insertPlainText(mes.str);
 }
+#ifdef Q_OS_LINUX
+void MainWindow::eventFileWatch(const QString &)
+{
+    QStringList items;
+    if(QFile::exists(path) && !fileWatch.directories().contains(path)) fileWatch.addPath(path);
+    else if(!QFile::exists(path)) fileWatch.addPath("/dev");
 
+    items = serial.getAvailPort();
+    if(items.length() == 0)
+        ui->cbSerialPort->clear();
+
+    else{
+        for(int i = 0; i < ui->cbSerialPort->count(); i++ )
+        {
+            if(!items.contains(ui->cbSerialPort->itemText(i))){
+                --i;
+                ui->cbSerialPort->removeItem(i);
+            }
+            else items.removeOne(ui->cbSerialPort->itemText(i));
+        }
+        if(items.length() != 0){
+            ui->cbSerialPort->addItems(items);
+            ui->cbSerialPort->setCurrentText(items.at(0));
+        }
+    }
+    if(!connectedDevice.isEmpty() && !items.contains(connectedDevice)){
+        QMessageBox::warning(this, tr("Device"), tr("Error! The device in use is disconnected"));
+        on_pbOpen_clicked();
+    }
+}
+#endif
+#ifdef Q_OS_WIN
+// События от Windows
+bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, long*)
+{
+    MSG * msg = static_cast< MSG * > (message);
+
+    // Событие присоединения нового устройства
+    if(msg->message == WM_DEVICECHANGE)
+    {
+        QStringList items;
+        items = serial.getAvailPort();
+        for( auto i = 0; i < ui->cbSerialPort->count(); i++ )
+        {
+            if(!items.contains(ui->cbSerialPort->itemText(i))) ui->cbSerialPort->removeItem(i);
+            else items.removeOne(ui->cbSerialPort->itemText(i));
+        }
+
+        if(items.length() == 0) return false;
+        ui->cbSerialPort->addItems(items);
+        ui->cbSerialPort->setCurrentText(items.at(0));
+
+        if(!connectedDevice.isEmpty() && !items.contains(connectedDevice)){
+            QMessageBox::warning(this, tr("Device"), tr("Error! The device in use is disconnected"));
+            on_pbOpen_clicked();
+        }
+    }
+    return false;
+}
+#endif
 void MainWindow::session(bool save)
 {
-    //TODO save last device
     QString strCurrBaudrate = "Current Baudrate";
     QString strBaudrates = "Baudrates";
     QSettings settings;
@@ -87,9 +189,12 @@ void MainWindow::session(bool save)
             settings.endGroup();
             settings.beginGroup("Data");
             QList<QString> listOfRecBauds = settings.value(strBaudrates).value<QList<QString>>();
-            ui->cbSpeed->clear();
+            if(listOfRecBauds.length() != 0) ui->cbSpeed->clear();
             for(auto item : listOfRecBauds) ui->cbSpeed->addItem(item);
-            ui->cbSpeed->setCurrentIndex(settings.value(strCurrBaudrate).toUInt());
+            ui->cbSpeed->setCurrentIndex(settings.value(strCurrBaudrate).toUInt() >= listOfRecBauds.length() ? 0 : settings.value(strCurrBaudrate).toUInt());
+            QString device = settings.value("LastDevice").toString();
+            int pos = ui->cbSerialPort->findText(device);
+            ui->cbSerialPort->setCurrentIndex(pos >= 0 ? pos : 0);
             settings.endGroup();
         }
         else settings.endGroup();
@@ -104,13 +209,13 @@ void MainWindow::session(bool save)
         settings.setValue(strCurrBaudrate, ui->cbSpeed->currentIndex());
         for(int i = 0; i < ui->cbSpeed->count(); i++) listOfBaud.append(ui->cbSpeed->itemText(i));
         settings.setValue(strBaudrates, QVariant::fromValue(listOfBaud));
+        settings.setValue("LastDevice", ui->cbSerialPort->currentText());
         settings.endGroup();
     }
 }
 
 void MainWindow::sortComboBox(uint baudrate)
 {
-    //TODO бинарный поиск
     for(int i = 0; i < ui->cbSpeed->count(); i++)
     {
         if(ui->cbSpeed->itemText(i).toUInt() == baudrate) break;
@@ -126,20 +231,14 @@ void MainWindow::sortComboBox(uint baudrate)
         }
     }
 }
-//TODO comment and for linux
 
-// Function that receive messages
-// This is windows-specific
-bool MainWindow::nativeEvent(const QByteArray&, void* message, long*)
+void MainWindow::showEvent(QShowEvent *)
 {
-    MSG * msg = static_cast< MSG * > (message);
-
-    // Does this specific message interest us?
-    if(msg->message == WM_DEVICECHANGE)
-    {
-        on_tbUpdate_clicked();
+    QFile f(":/qdarkstyle/dark/darkstyle.qss");
+    if (f.exists()){
+        f.open(QFile::ReadOnly | QFile::Text);
+        QTextStream ts(&f);
+        qApp->setStyleSheet(ts.readAll());
     }
-
-    // Qt handles the rest
-    return false;
+    else QMessageBox::warning(this, tr("Theme"), tr("Error open file"));
 }

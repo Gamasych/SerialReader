@@ -7,7 +7,7 @@
 
 struct ColorString{
     QString str;
-    QColor clrText = QColor();
+    QColor clrText = QColor::fromRgb(224, 225, 227);
     QColor clrBackGround = Qt::transparent;
 };
 

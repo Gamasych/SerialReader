@@ -6,7 +6,7 @@ Parser::Parser()
     style.insert(0, QString("%1"));
     style.insert(1, QString("<b>%1</b>"));
     style.insert(4, QString("<u>%1</u>"));
-    style.insert(5, QString("%1"));
+    style.insert(5, QString("%1")); //не робит
     style.insert(7, QString("<ol reversed>%1</ol>")); // не робит
     style.insert(8, QString("<s>%1<s>"));
 
@@ -31,7 +31,6 @@ Parser::Parser()
 
 Parser::~Parser()
 {
-    qDebug() << buffer;
     buffer.clear();
 }
 //TODO refactor

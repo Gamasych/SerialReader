@@ -6,7 +6,6 @@
 
 int main(int argc, char *argv[])
 {
-    qRegisterMetaTypeStreamOperators<QList<QString>>("Baudrates");
     QApplication a(argc, argv);
 
     QTranslator translator;
