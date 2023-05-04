@@ -6,8 +6,8 @@
 #ifdef Q_OS_LINUX
 #include <QFileSystemWatcher>
 #endif
-#include "serialreader.h"
-#include "parser.h"
+#include "reader/serialreader.h"
+#include "parser/parser.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -41,6 +41,7 @@ protected:
 private:
     void session(bool save);
     void sortComboBox(uint baudrate);
+    void updateDevice();
 
     Ui::MainWindow *ui;
     SerialReader serial;

@@ -45,5 +45,7 @@ int SerialReader::closeSerial()
 
 void SerialReader::readData()
 {
-    emit setMessage(QString::fromStdString(ser.readAll().toStdString()));
+    auto res = ser.readAll();
+    QString str(res);
+    emit setMessage(str);
 }

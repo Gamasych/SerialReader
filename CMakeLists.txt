@@ -17,8 +17,10 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets LinguistTools SerialPort R
 set(TS_FILES SerialReader_ru_RU.ts)
 
 file(GLOB cmd
-    "src/*"
-    "src/qdarkstyle/*/*"
+    "src/*.*"
+    "src/parser/*"
+    "src/reader/*"
+    "src/theme/dark/*/*"
 )
 
 set(BUILD_NUMBER 1)
@@ -28,7 +30,9 @@ endif()
 
 set(COMPANY_NAME "НПП «ИТЭЛМА»")
 
-add_executable(${PROJECT_NAME} ${cmd})
+set(RESOURCE_THEME src/theme/dark/darkstyle.qrc)
+
+add_executable(${PROJECT_NAME} ${cmd} ${RESOURCE_THEME})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Widgets Qt5::SerialPort)
 

@@ -9,8 +9,8 @@ class SerialReader: public QObject
     Q_OBJECT
 public:
     SerialReader() {}
-    QStringList getAvailPort();
-    QStringList getSpeed();
+    static QStringList getAvailPort();
+    static QStringList getSpeed();
     int openSerial(QString serialPort, quint32 baudRate);
     int closeSerial();
 

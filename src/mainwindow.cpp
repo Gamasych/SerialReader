@@ -21,8 +21,8 @@ MainWindow::MainWindow(QWidget *parent)
     qRegisterMetaTypeStreamOperators<QList<QString>>("Baudrates");
     qRegisterMetaType<ColorString>("ColorString");
     ui->setupUi(this);
-    ui->cbSerialPort->addItems(serial.getAvailPort());
-    ui->cbSpeed->addItems(serial.getSpeed());
+    ui->cbSerialPort->addItems(SerialReader::getAvailPort());
+    ui->cbSpeed->addItems(SerialReader::getSpeed());
     session(false);
 
     //перенос парсера и чтение порта в отдельные потоки
@@ -69,7 +69,7 @@ MainWindow::~MainWindow()
 void MainWindow::on_tbUpdate_clicked()
 {
     ui->cbSerialPort->clear();
-    ui->cbSerialPort->addItems(serial.getAvailPort());
+    ui->cbSerialPort->addItems(SerialReader::getAvailPort());
 }
 
 void MainWindow::on_tbAdd_clicked()
@@ -119,32 +119,9 @@ void MainWindow::getMessage(ColorString mes)
 #ifdef Q_OS_LINUX
 void MainWindow::eventFileWatch(const QString &)
 {
-    QStringList items;
     if(QFile::exists(path) && !fileWatch.directories().contains(path)) fileWatch.addPath(path);
     else if(!QFile::exists(path)) fileWatch.addPath("/dev");
-
-    items = serial.getAvailPort();
-    if(items.length() == 0)
-        ui->cbSerialPort->clear();
-
-    else{
-        for(int i = 0; i < ui->cbSerialPort->count(); i++ )
-        {
-            if(!items.contains(ui->cbSerialPort->itemText(i))){
-                --i;
-                ui->cbSerialPort->removeItem(i);
-            }
-            else items.removeOne(ui->cbSerialPort->itemText(i));
-        }
-        if(items.length() != 0){
-            ui->cbSerialPort->addItems(items);
-            ui->cbSerialPort->setCurrentText(items.at(0));
-        }
-    }
-    if(!connectedDevice.isEmpty() && !items.contains(connectedDevice)){
-        QMessageBox::warning(this, tr("Device"), tr("Error! The device in use is disconnected"));
-        on_pbOpen_clicked();
-    }
+    updateDevice();
 }
 #endif
 #ifdef Q_OS_WIN
@@ -152,27 +129,8 @@ void MainWindow::eventFileWatch(const QString &)
 bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, long*)
 {
     MSG * msg = static_cast< MSG * > (message);
-
     // Событие присоединения нового устройства
-    if(msg->message == WM_DEVICECHANGE)
-    {
-        QStringList items;
-        items = serial.getAvailPort();
-        for( auto i = 0; i < ui->cbSerialPort->count(); i++ )
-        {
-            if(!items.contains(ui->cbSerialPort->itemText(i))) ui->cbSerialPort->removeItem(i);
-            else items.removeOne(ui->cbSerialPort->itemText(i));
-        }
-
-        if(items.length() == 0) return false;
-        ui->cbSerialPort->addItems(items);
-        ui->cbSerialPort->setCurrentText(items.at(0));
-
-        if(!connectedDevice.isEmpty() && !items.contains(connectedDevice)){
-            QMessageBox::warning(this, tr("Device"), tr("Error! The device in use is disconnected"));
-            on_pbOpen_clicked();
-        }
-    }
+    if(msg->message == WM_DEVICECHANGE) updateDevice();
     return false;
 }
 #endif
@@ -232,8 +190,36 @@ void MainWindow::sortComboBox(uint baudrate)
     }
 }
 
+void MainWindow::updateDevice()
+{
+    QStringList items;
+    items = SerialReader::getAvailPort();
+    if(!connectedDevice.isEmpty() && !items.contains(connectedDevice)){
+        on_pbOpen_clicked();
+        QMessageBox::warning(this, tr("Device"), tr("Error! The device in use is disconnected"));
+    }
+    if(items.length() == 0)
+        ui->cbSerialPort->clear();
+
+    else{
+        for(int i = 0; i < ui->cbSerialPort->count(); i++ )
+        {
+            if(!items.contains(ui->cbSerialPort->itemText(i))){
+                ui->cbSerialPort->removeItem(i);
+                --i;
+            }
+            else items.removeOne(ui->cbSerialPort->itemText(i));
+        }
+        if(items.length() != 0){
+            ui->cbSerialPort->addItems(items);
+            ui->cbSerialPort->setCurrentText(items.at(0));
+        }
+    }
+}
+
 void MainWindow::showEvent(QShowEvent *)
 {
+    //https://github.com/ColinDuquesnoy/QDarkStyleSheet
     QFile f(":/qdarkstyle/dark/darkstyle.qss");
     if (f.exists()){
         f.open(QFile::ReadOnly | QFile::Text);
