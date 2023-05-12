@@ -94,6 +94,7 @@ void Parser::getMessage(QString mes)
 
 void Parser::config()
 {
+    //TODO set const std
     //html style for text
     style.insert(0, QString("%1"));
     style.insert(1, QString("<b>%1</b>")); //жирный

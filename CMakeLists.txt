@@ -20,6 +20,7 @@ file(GLOB cmd
     "src/*.*"
     "src/parser/*"
     "src/reader/*"
+    "src/parameters/*"
     "src/theme/dark/*/*"
 )
 
