@@ -17,9 +17,9 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    a.setOrganizationName("AIS");
-    a.setOrganizationDomain("KB");
-    a.setApplicationName("lizator");
+    a.setOrganizationName("None");
+    a.setOrganizationDomain("None");
+    a.setApplicationName("SerialReader");
     MainWindow w;
     w.show();
     return a.exec();

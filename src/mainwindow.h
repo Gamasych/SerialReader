@@ -3,11 +3,9 @@
 
 #include <QMainWindow>
 #include <QThread>
-#ifdef Q_OS_LINUX
-#include <QFileSystemWatcher>
-#endif
 #include "reader/serialreader.h"
 #include "parser/parser.h"
+#include "parameters/serial_settings.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -22,36 +20,20 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_tbUpdate_clicked();
-    void on_tbAdd_clicked();
     void on_pbClear_clicked();
-    void on_pbOpen_clicked();
     void getMessage(ColorString mes);
- #ifdef Q_OS_LINUX
-    void eventFileWatch(const QString &path);
- #endif
+    void on_actionParams_triggered();
+    void on_actionConnect_triggered(bool checked);
 
 protected:
     void showEvent(QShowEvent * event) override; //открытие окна
-#ifdef Q_OS_WIN
-    bool nativeEvent(const QByteArray& eventType, void* message,
-                     long* result) override;
 
-#endif
 private:
-    void session(bool save);
-    void sortComboBox(uint baudrate);
-    void updateDevice();
-
     Ui::MainWindow *ui;
+    SerialSettings paramsWindow;
     SerialReader serial;
     Parser pars;
     QThread threadParser;
     QThread threadSerial;
-    QString connectedDevice;
-#ifdef Q_OS_LINUX
-    QFileSystemWatcher fileWatch;
-    QString path;
-#endif
 };
 #endif // MAINWINDOW_H

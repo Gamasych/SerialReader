@@ -26,13 +26,7 @@ signals:
     void setColorMes(ColorString str);
 
 private:
-    void config();
-
     QString buffer;
-    QMap<uint, QColor> textCltr;
-    QMap<uint, QColor> bgCltr;
-    QMap<uint, QString> style;
-    QHash<uint, QColor> xtermColor;
     ColorString res;
     QString temp;
     QString styleText = "%1";
